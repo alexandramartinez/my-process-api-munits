@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="my-process-api-test-suite.xml" />
+	<munit:test name="my-process-api-test-suite:happy-path" doc:id="cd485fdc-acca-4e0c-9175-28bf34f6221f">
+		<munit:behavior >
+			<munit-tools:spy doc:name="RQ transformation" doc:id="beaf3f15-72a8-4c91-89a0-50b80b31ff1d" processor="ee:transform">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="06ee1941-39e3-4b54-8b81-d57e9ede7a3c" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:after-call >
+					<munit-tools:assert-that doc:name="RQ = expected" doc:id="a9fde0da-4e68-4338-937e-543b6d1949f2" is="#[MunitTools::equalTo(readUrl('classpath://munit/hr-api-request-happy-path.json','application/json'))]" expression="#[output application/json --- payload]" message="Request payload does not match expected."/>
+				</munit-tools:after-call>
+			</munit-tools:spy>
+			<munit-tools:mock-when doc:name="HR API Request" doc:id="bdeed81b-90c3-42c0-9b5b-78e3e5257b89" processor="http:request">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="3c2b7c2d-7041-453c-9a37-e3a060536ca0" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://munit/hr-api-response-happy-path.json')]" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Publish to queue2" doc:id="b837533d-0d25-4363-9432-182eebe6a01f" processor="anypoint-mq:publish">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="6c13ae81-85f1-4f12-8810-36939fa75bfc" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Ack queue1" doc:id="53978e17-adf2-4508-a25c-5b878db12181" processor="anypoint-mq:ack">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="61d194d0-6d8b-421b-9594-c2eee435019c" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="354d63e5-f172-4fdd-a818-db5c84e15f97" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://munit/queue-input-happy-path.json')]" mediaType="application/json" />
+				<munit:attributes value='#[{ ackToken: "abc-123-456", properties: {transId: "abc-123"} }]' />
+			</munit:set-event>
+			<flow-ref doc:name="my-process-api:main" doc:id="b99d0ec4-46d4-4449-bf2e-a13f806447db" name="my-process-api:main"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Final payload = expected" doc:id="d95b6233-2bac-4b96-88a3-f30d0f4c4a1f" is="#[MunitTools::equalTo(readUrl('classpath://munit/hr-api-response-happy-path-transformed.json','application/json'))]" expression="#[output application/json --- payload]" message="Final payload does not match expected."/>
+			<munit-tools:verify-call doc:name="HR API HTTP Request = 1" doc:id="fa18b39f-6779-4cef-b51b-992e6e112de8" processor="http:request" times="#[1]">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="3c2b7c2d-7041-453c-9a37-e3a060536ca0" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Transform Response = 1" doc:id="c5548555-5c01-4891-b51d-294831542eb2" processor="ee:transform" times="#[1]">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="0872e243-8f8b-467b-8aad-9f8cedc409a1" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="On Error Continue = 0" doc:id="3d80d7fb-61f4-4e1b-8c57-67cd7064b665" processor="ee:transform" times="#[0]">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="1095617d-faca-40b3-9d07-84376d5a01c1" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="On Error Propagate = 0" doc:id="17b3ff6b-2797-4c07-9038-d6a1c8ca6602" processor="logger" times="#[0]">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="8a246324-1173-4e3f-abe8-b406bbba276a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Nack = 0" doc:id="34aff706-5212-4287-9afc-7bea3ba361ee" processor="anypoint-mq:nack" times="#[0]">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="de9a49ad-820e-4aea-8d18-6180ed41160f" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="my-process-api-test-suite:bad-request" doc:id="c21531c5-1734-4cb4-8cf9-b7c083d7201e">
+		<munit:behavior >
+			<munit-tools:spy doc:name="RQ transformation" doc:id="d8b7c5da-7d09-4d52-a753-1d63db98de9a" processor="ee:transform" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="06ee1941-39e3-4b54-8b81-d57e9ede7a3c" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:after-call >
+					<munit-tools:assert-that doc:name="RQ = expected" doc:id="d0bc4850-ca3b-4b6a-809d-9111dbffef1a" message="Request payload does not match expected." expression="#[output application/json --- payload]" is="#[MunitTools::equalTo(readUrl('classpath://munit/hr-api-request-bad-request.json','application/json'))]" />
+				</munit-tools:after-call>
+			</munit-tools:spy>
+			<munit-tools:mock-when doc:name="HR API Request" doc:id="68560168-a528-4b28-b61d-ba9104d6c1c6" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="3c2b7c2d-7041-453c-9a37-e3a060536ca0" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:payload value="#[output application/json --- readUrl('classpath://munit/hr-api-response-bad-request.json')]" />
+					<munit-tools:error typeId="#['HTTP:BAD_REQUEST']" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Publish to queue2" doc:id="f086c705-4406-40b5-95a7-65ecebf1e332" processor="anypoint-mq:publish" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="6c13ae81-85f1-4f12-8810-36939fa75bfc" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Ack queue1" doc:id="3d539e8f-b2d8-4e8c-8387-c901a134d65d" processor="anypoint-mq:ack" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="61d194d0-6d8b-421b-9594-c2eee435019c" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="f81b25dc-5c48-43b3-a9b0-d7b04e240fe3" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://munit/queue-input-bad-request.json')]" mediaType="application/json" />
+				<munit:attributes value='#[{ ackToken: "abc-123-456", properties: {transId: "abc-123"} }]' />
+			</munit:set-event>
+			<flow-ref doc:name="my-process-api:main" doc:id="b19a1ea4-69df-4538-acb5-6f30ffba0b79" name="my-process-api:main" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="Final payload = expected" doc:id="237aa012-7930-49e2-bd8c-9da294deb0e7" message="Final payload does not match expected." expression="#[output application/json --- payload]" is="#[MunitTools::equalTo(readUrl('classpath://munit/hr-api-response-bad-request-transformed.json','application/json'))]" />
+			<munit-tools:verify-call doc:name="HR API HTTP Request = 1" doc:id="c5bff93d-2f87-4da5-91ef-794a36be058c" processor="http:request" times="#[1]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="3c2b7c2d-7041-453c-9a37-e3a060536ca0" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Transform Response = 0" doc:id="4addbe94-ad33-4075-b73d-e3922a2099b0" processor="ee:transform" times="#[0]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="0872e243-8f8b-467b-8aad-9f8cedc409a1" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="On Error Continue = 1" doc:id="82c1bba3-dcce-4c2f-ac04-9d0a23b22df6" processor="ee:transform" times="#[1]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="1095617d-faca-40b3-9d07-84376d5a01c1" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="On Error Propagate = 0" doc:id="f986ad01-754d-4aea-b2c7-a558afa7a49f" processor="logger" times="#[0]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="8a246324-1173-4e3f-abe8-b406bbba276a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Nack = 0" doc:id="2758f653-76b1-402c-bb0a-2ca7cbd987b4" processor="anypoint-mq:nack" times="#[0]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="de9a49ad-820e-4aea-8d18-6180ed41160f" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="my-process-api-test-suite:connectivity-issues" doc:id="6884b4ba-c925-4f48-9a87-62c8de886f1d" expectedErrorType="RETRY_EXHAUSTED">
+		<munit:behavior>
+			<munit-tools:mock-when doc:name="HR API Request" doc:id="5fa2ebe2-2fae-48af-9e4a-0c1e43d77438" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="3c2b7c2d-7041-453c-9a37-e3a060536ca0" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="#['HTTP:CONNECTIVITY']" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Nack queue1" doc:id="eb7daf6c-caac-4d6e-9468-2ae3fc0dd789" processor="anypoint-mq:nack">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="de9a49ad-820e-4aea-8d18-6180ed41160f" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution>
+			<munit:set-event doc:name="Set Event" doc:id="ba8d07be-64ad-4b48-b24a-ec1fefbcca34" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://munit/queue-input-happy-path.json')]" mediaType="application/json" />
+				<munit:attributes value='#[{ ackToken: "abc-123-456", properties: {transId: "abc-123"} }]' />
+			</munit:set-event>
+			<flow-ref doc:name="my-process-api:main" doc:id="8c00b613-b47c-4fea-b81b-d2e00086a37a" name="my-process-api:main" />
+		</munit:execution>
+	</munit:test>
+	<munit:test name="my-process-api-test-suite:rq-transformation-noPhone-noTitle" doc:id="eb8d9c8c-968c-4e37-bf9c-628a99270c22" >
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="75fa4aa7-3eef-4898-9803-ec2c826b2f36" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://munit/queue-input-noPhone-noTitle.json')]" mediaType="application/json" />
+				<munit:attributes value='#[{ ackToken: "abc-123-456", properties: {transId: "abc-123"} }]' />
+			</munit:set-event>
+			<flow-ref doc:name="my-process-api:vars-and-request" doc:id="afe4586e-8578-444a-86f0-533b006e7bce" name="my-process-api:vars-and-request"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert-that doc:name="RQ = expected" doc:id="c33d24c6-d97e-4a55-8943-a19d6cf08a2a" message="Final payload does not match expected." expression="#[output application/json --- payload]" is="#[MunitTools::equalTo(readUrl('classpath://munit/hr-api-request-noPhone-noTitle.json','application/json'))]" />
+			<munit-tools:assert-equals doc:name="transId var" doc:id="0faf2908-1c42-425a-8c37-62bbff6ce3b0" actual="#[vars.transId]" expected='#["abc-123"]' message="transId var doesn't match expected."/>
+			<munit-tools:assert-equals doc:name="ackToken var" doc:id="eeb7d287-e93c-452e-a8b0-3d21238f8a8b" actual="#[vars.ackToken]" expected='#["abc-123-456"]' message="ackToken var doesn't match expected."/>
+		</munit:validation>
+	</munit:test>
+
+</mule>

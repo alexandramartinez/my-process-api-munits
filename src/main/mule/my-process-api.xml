@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<anypoint-mq:config name="Anypoint_MQ_Config" doc:name="Anypoint MQ Config" doc:id="64790599-e783-4afa-95a4-c16d4585fd41" >
+		<anypoint-mq:connection clientId="test" clientSecret="test" />
+	</anypoint-mq:config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="ba6a804e-5964-4624-9bc9-c0be519b2e99" >
+		<http:request-connection host="hrapi.com" />
+	</http:request-config>
+	<flow name="my-process-api:main" doc:id="fea87d08-24b7-4339-bc70-cfb6761f016c" >
+		<anypoint-mq:subscriber doc:name="queue1" doc:id="706d9088-bb88-45a0-b508-c054365e4acf" config-ref="Anypoint_MQ_Config" destination="queue1" acknowledgementMode="MANUAL" acknowledgementTimeout="3" acknowledgementTimeoutUnit="MINUTES"/>
+		<flow-ref doc:name="my-process-api:vars-and-request" doc:id="f02833e0-ec6f-4e62-8d7e-d275c1eb54e4" name="my-process-api:vars-and-request"/>
+		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="fcc040ed-ff78-4d51-bd29-c38659ab872e" millisBetweenRetries="500">
+			<flow-ref doc:name="my-process-api:hr-api-call" doc:id="dabbb930-1ec6-49fd-a6f2-4b80f9a2cc9d" name="my-process-api:hr-api-call"/>
+		</until-successful>
+		<anypoint-mq:publish doc:name="to queue2" doc:id="6c13ae81-85f1-4f12-8810-36939fa75bfc" config-ref="Anypoint_MQ_Config" destination="queue2"/>
+		<anypoint-mq:ack doc:name="queue1" doc:id="61d194d0-6d8b-421b-9594-c2eee435019c" config-ref="Anypoint_MQ_Config" ackToken="#[vars.ackToken]"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="238789c9-18cd-4377-ba25-325356f3910e" >
+				<anypoint-mq:nack doc:name="Nack" doc:id="de9a49ad-820e-4aea-8d18-6180ed41160f" config-ref="Anypoint_MQ_Config" ackToken="#[vars.ackToken]"/>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+	<sub-flow name="my-process-api:vars-and-request" doc:id="9d28902b-053f-40f1-afee-bcd2a1ab715c" >
+		<ee:transform doc:name="Create vars" doc:id="920daee1-57fd-4844-947d-2589e175251c" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="ackToken" ><![CDATA[%dw 2.0
+output application/java
+---
+attributes.ackToken]]></ee:set-variable>
+				<ee:set-variable variableName="transId" ><![CDATA[%dw 2.0
+output application/java
+---
+attributes.properties.transId]]></ee:set-variable>
+				<ee:set-variable variableName="eid" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.eid]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Create Request" doc:id="06ee1941-39e3-4b54-8b81-d57e9ede7a3c" >
+			<ee:message >
+				<ee:set-payload resource="dw/hr-request.dwl" />
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
+	<sub-flow name="my-process-api:hr-api-call" doc:id="ba9e95fc-fd78-454c-9fa7-71a38f0dcf5d" >
+		<try doc:name="Try" doc:id="4fb21513-5d48-4ebf-9470-553bcb6555dc" >
+			<http:request method="POST" doc:name="HR API" doc:id="3c2b7c2d-7041-453c-9a37-e3a060536ca0" config-ref="HTTP_Request_configuration" path="/employees"/>
+			<ee:transform doc:name="Create Successful Response" doc:id="0872e243-8f8b-467b-8aad-9f8cedc409a1" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+var message = payload.message
+---
+{
+    eid: payload.eid default vars.eid,
+    status: "SUCCESS",
+    message: if (isEmpty(message)) "Operation was a success"
+    	else message
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f08c79d7-8ab6-415c-9984-aeed5fdd758f" type="HTTP:BAD_REQUEST, HTTP:INTERNAL_SERVER_ERROR">
+					<ee:transform doc:name="Create Error Response" doc:id="1095617d-faca-40b3-9d07-84376d5a01c1" >
+						<ee:message >
+							<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+var message = payload.message default error.description
+---
+{
+    eid: payload.eid default vars.eid,
+    status: "ERROR",
+    message: if (isEmpty(message)) "No error message"
+    	else message
+}]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+				</on-error-continue>
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="70268a7e-8f4c-4d64-ae01-070f17a4ccbf" type="ANY">
+					<logger level="ERROR" doc:name="Connection error" doc:id="8a246324-1173-4e3f-abe8-b406bbba276a" message="Connection error"/>
+				</on-error-propagate>
+			</error-handler>
+		</try>
+	</sub-flow>
+</mule>

@@ -1,0 +1,10 @@
+{
+  "eid": "1234",
+  "phone": {
+    "areaCode": "123",
+    "number": "1234567"
+  },
+  "birthdate": "20041201",
+  "title": "MuleSoft Developer",
+  "area": "MS"
+}

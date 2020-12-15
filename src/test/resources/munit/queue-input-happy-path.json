@@ -1,0 +1,8 @@
+{
+    "EmployeeId" : "1234",
+    "PhoneNumber" : "123-1234567",
+    "FirstName" : "Alex",
+    "LastName" : "Martinez",
+    "Birthdate" : "2004-12-01",
+    "Title" : "MuleSoft Developer"
+}
