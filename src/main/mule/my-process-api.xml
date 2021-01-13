@@ -70,7 +70,10 @@ var message = payload.message
 				</ee:message>
 			</ee:transform>
 			<error-handler >
-				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f08c79d7-8ab6-415c-9984-aeed5fdd758f" type="HTTP:BAD_REQUEST, HTTP:INTERNAL_SERVER_ERROR">
+				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="70268a7e-8f4c-4d64-ae01-070f17a4ccbf" type="HTTP:CONNECTIVITY">
+					<logger level="ERROR" doc:name="Connection error" doc:id="8a246324-1173-4e3f-abe8-b406bbba276a" message="Connection error" />
+				</on-error-propagate>
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="f08c79d7-8ab6-415c-9984-aeed5fdd758f" type="ANY">
 					<ee:transform doc:name="Create Error Response" doc:id="1095617d-faca-40b3-9d07-84376d5a01c1" >
 						<ee:message >
 							<ee:set-payload ><![CDATA[%dw 2.0
@@ -87,9 +90,6 @@ var message = payload.message default error.description
 						</ee:message>
 					</ee:transform>
 				</on-error-continue>
-				<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="70268a7e-8f4c-4d64-ae01-070f17a4ccbf" type="ANY">
-					<logger level="ERROR" doc:name="Connection error" doc:id="8a246324-1173-4e3f-abe8-b406bbba276a" message="Connection error"/>
-				</on-error-propagate>
 			</error-handler>
 		</try>
 	</sub-flow>
