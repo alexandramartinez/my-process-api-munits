@@ -28,7 +28,7 @@ attributes.properties.transId]]></ee:set-variable>
 				<ee:set-variable variableName="eid"><![CDATA[%dw 2.0
 output application/java
 ---
-payload.eid]]></ee:set-variable>
+payload.EmployeeId]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
 		<ee:transform doc:name="Create Request" doc:id="06ee1941-39e3-4b54-8b81-d57e9ede7a3c">
