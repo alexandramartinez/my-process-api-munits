@@ -40,14 +40,14 @@ payload.eid]]></ee:set-variable>
 	<flow name="my-process-api:main" doc:id="fea87d08-24b7-4339-bc70-cfb6761f016c" >
 		<anypoint-mq:subscriber doc:name="queue1" doc:id="706d9088-bb88-45a0-b508-c054365e4acf" config-ref="Anypoint_MQ_Config" destination="queue1" acknowledgementMode="MANUAL" acknowledgementTimeout="3" acknowledgementTimeoutUnit="MINUTES"/>
 		<flow-ref doc:name="my-process-api:vars-and-request" doc:id="f02833e0-ec6f-4e62-8d7e-d275c1eb54e4" name="my-process-api:vars-and-request"/>
-		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="fcc040ed-ff78-4d51-bd29-c38659ab872e" millisBetweenRetries="500">
+		<until-successful maxRetries="2" doc:name="Until Successful" doc:id="fcc040ed-ff78-4d51-bd29-c38659ab872e" millisBetweenRetries="500" >
 			<flow-ref doc:name="my-process-api:hr-api-call" doc:id="dabbb930-1ec6-49fd-a6f2-4b80f9a2cc9d" name="my-process-api:hr-api-call"/>
 		</until-successful>
 		<anypoint-mq:publish doc:name="to queue2" doc:id="6c13ae81-85f1-4f12-8810-36939fa75bfc" config-ref="Anypoint_MQ_Config" destination="queue2"/>
 		<anypoint-mq:ack doc:name="queue1" doc:id="61d194d0-6d8b-421b-9594-c2eee435019c" config-ref="Anypoint_MQ_Config" ackToken="#[vars.ackToken]"/>
 		<error-handler >
 			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="238789c9-18cd-4377-ba25-325356f3910e" >
-				<anypoint-mq:nack doc:name="Nack" doc:id="de9a49ad-820e-4aea-8d18-6180ed41160f" config-ref="Anypoint_MQ_Config" ackToken="#[vars.ackToken]"/>
+				<anypoint-mq:nack doc:name="queue1" doc:id="de9a49ad-820e-4aea-8d18-6180ed41160f" config-ref="Anypoint_MQ_Config" ackToken="#[vars.ackToken]"/>
 			</on-error-propagate>
 		</error-handler>
 	</flow>

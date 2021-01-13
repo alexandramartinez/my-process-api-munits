@@ -163,6 +163,67 @@
 			<flow-ref doc:name="my-process-api:main" doc:id="8c00b613-b47c-4fea-b81b-d2e00086a37a" name="my-process-api:main" />
 		</munit:execution>
 	</munit:test>
+	<munit:test name="my-process-api-test-suite:connectivity-issues-2" doc:id="cdc13e7c-e4d5-41a7-9bc7-a1cb69bd9683" >
+		<munit:behavior >
+			<munit-tools:mock-when doc:name="HR API Request" doc:id="f2096b8f-0e3c-41d4-9ba6-472dc1800507" processor="http:request" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="3c2b7c2d-7041-453c-9a37-e3a060536ca0" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return >
+					<munit-tools:error typeId="#['HTTP:CONNECTIVITY']" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+			<munit-tools:mock-when doc:name="Nack queue1" doc:id="a82842e0-803f-42b4-9431-0bda781735ae" processor="anypoint-mq:nack" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="de9a49ad-820e-4aea-8d18-6180ed41160f" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:mock-when>
+		</munit:behavior>
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="25355a40-f757-4cda-aca5-6c7c54445990" >
+				<munit:payload value="#[output application/json --- readUrl('classpath://munit/queue-input-happy-path.json')]" mediaType="application/json" />
+				<munit:attributes value='#[{ ackToken: "abc-123-456", properties: {transId: "abc-123"} }]' />
+			</munit:set-event>
+			<try doc:name="Try" doc:id="7d822382-3943-44fc-ab1f-fe8f4fc00b98" >
+				<flow-ref doc:name="my-process-api:main" doc:id="474cc111-0d40-46c7-b62e-fa9cf2d82b8e" name="my-process-api:main" />
+				<error-handler >
+					<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="90762c96-a552-41da-b0c5-e8d6d6787823" type="RETRY_EXHAUSTED">
+						<logger level="INFO" doc:name="Expected" doc:id="53239ddf-7d16-459f-846f-be0adc71d115" message="Expected"/>
+					</on-error-continue>
+					<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="27cdf192-f08b-4d45-a7fc-a4386ee9d8b2" type="ANY">
+						<munit-tools:fail doc:name="Fail" doc:id="67d04782-00d1-40a7-a3de-52136b4528af" />
+					</on-error-propagate>
+				</error-handler>
+			</try>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="HR API HTTP Request = 3" doc:id="3a75d008-2c01-436f-a89b-20ae66b57ae9" processor="http:request" times="#[3]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="3c2b7c2d-7041-453c-9a37-e3a060536ca0" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Transform Response = 0" doc:id="00038d4d-0a5a-42d5-9ffe-6315478f214c" processor="ee:transform" times="#[0]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="0872e243-8f8b-467b-8aad-9f8cedc409a1" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="On Error Continue = 0" doc:id="f088d2e5-7616-434a-8c8a-a06d15bbab3b" processor="ee:transform" times="#[0]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="1095617d-faca-40b3-9d07-84376d5a01c1" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="On Error Propagate = 3" doc:id="fe804832-c18b-4d93-bcf6-492a53221794" processor="logger" times="#[3]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="8a246324-1173-4e3f-abe8-b406bbba276a" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Nack = 1" doc:id="d5565274-e3b5-4c04-8dd1-a544086def73" processor="anypoint-mq:nack" times="#[1]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="de9a49ad-820e-4aea-8d18-6180ed41160f" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
 	<munit:test name="my-process-api-test-suite:rq-transformation-noPhone-noTitle" doc:id="eb8d9c8c-968c-4e37-bf9c-628a99270c22" >
 		<munit:execution >
 			<munit:set-event doc:name="Set Event" doc:id="75fa4aa7-3eef-4898-9803-ec2c826b2f36" >
