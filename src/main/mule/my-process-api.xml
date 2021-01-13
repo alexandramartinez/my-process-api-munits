@@ -12,6 +12,31 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="ba6a804e-5964-4624-9bc9-c0be519b2e99" >
 		<http:request-connection host="hrapi.com" />
 	</http:request-config>
+	<sub-flow name="my-process-api:vars-and-request" doc:id="9d28902b-053f-40f1-afee-bcd2a1ab715c">
+		<ee:transform doc:name="Create vars" doc:id="920daee1-57fd-4844-947d-2589e175251c">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="ackToken"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.ackToken]]></ee:set-variable>
+				<ee:set-variable variableName="transId"><![CDATA[%dw 2.0
+output application/java
+---
+attributes.properties.transId]]></ee:set-variable>
+				<ee:set-variable variableName="eid"><![CDATA[%dw 2.0
+output application/java
+---
+payload.eid]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<ee:transform doc:name="Create Request" doc:id="06ee1941-39e3-4b54-8b81-d57e9ede7a3c">
+			<ee:message>
+				<ee:set-payload resource="dw/hr-request.dwl" />
+			</ee:message>
+		</ee:transform>
+	</sub-flow>
 	<flow name="my-process-api:main" doc:id="fea87d08-24b7-4339-bc70-cfb6761f016c" >
 		<anypoint-mq:subscriber doc:name="queue1" doc:id="706d9088-bb88-45a0-b508-c054365e4acf" config-ref="Anypoint_MQ_Config" destination="queue1" acknowledgementMode="MANUAL" acknowledgementTimeout="3" acknowledgementTimeoutUnit="MINUTES"/>
 		<flow-ref doc:name="my-process-api:vars-and-request" doc:id="f02833e0-ec6f-4e62-8d7e-d275c1eb54e4" name="my-process-api:vars-and-request"/>
@@ -26,31 +51,6 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 			</on-error-propagate>
 		</error-handler>
 	</flow>
-	<sub-flow name="my-process-api:vars-and-request" doc:id="9d28902b-053f-40f1-afee-bcd2a1ab715c" >
-		<ee:transform doc:name="Create vars" doc:id="920daee1-57fd-4844-947d-2589e175251c" >
-			<ee:message >
-			</ee:message>
-			<ee:variables >
-				<ee:set-variable variableName="ackToken" ><![CDATA[%dw 2.0
-output application/java
----
-attributes.ackToken]]></ee:set-variable>
-				<ee:set-variable variableName="transId" ><![CDATA[%dw 2.0
-output application/java
----
-attributes.properties.transId]]></ee:set-variable>
-				<ee:set-variable variableName="eid" ><![CDATA[%dw 2.0
-output application/java
----
-payload.eid]]></ee:set-variable>
-			</ee:variables>
-		</ee:transform>
-		<ee:transform doc:name="Create Request" doc:id="06ee1941-39e3-4b54-8b81-d57e9ede7a3c" >
-			<ee:message >
-				<ee:set-payload resource="dw/hr-request.dwl" />
-			</ee:message>
-		</ee:transform>
-	</sub-flow>
 	<sub-flow name="my-process-api:hr-api-call" doc:id="ba9e95fc-fd78-454c-9fa7-71a38f0dcf5d" >
 		<try doc:name="Try" doc:id="4fb21513-5d48-4ebf-9470-553bcb6555dc" >
 			<http:request method="POST" doc:name="HR API" doc:id="3c2b7c2d-7041-453c-9a37-e3a060536ca0" config-ref="HTTP_Request_configuration" path="/employees"/>
