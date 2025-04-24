@@ -46,3 +46,6 @@ target/
 .mule/**/*
 .DS_Store
 velocity.log
+.tooling-project
+.vscode/
+src/test/resources/embedded*
